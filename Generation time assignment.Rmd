@@ -1,0 +1,214 @@
+---
+title: ""
+output: 
+  pdf_document: 
+    toc: FALSE
+    fig_width: 6
+    fig_height: 3.5
+    fig_caption: yes
+    number_sections: FALSE
+crossref:
+  fig-title: '**Figure**'
+  fig-labels: arabic
+  title-delim: "**.**"
+urlcolor: blue  
+fontsize: 12pt
+geometry: margin = 1 in
+header-includes:
+  - \usepackage{float}
+  - \usepackage{sectsty}
+  - \usepackage{paralist}
+  - \usepackage{setspace}\spacing{1.5}
+  - \usepackage{fancyhdr}
+  - \usepackage{lastpage}
+  - \usepackage{dcolumn}
+  - \usepackage{natbib}\bibliographystyle{agsm}
+  - \usepackage[nottoc, numbib]{tocbibind}
+  - \usepackage{booktabs}
+  - \usepackage{diagbox}
+bibliography: BIOC17 Generation time assignment.bib
+editor_options: 
+  markdown: 
+    wrap: sentence
+---
+
+<!-- Cover Page -->
+
+```{=html}
+<!--The title is informative, specific and precise. It gives an accurate preview
+of what the report is about. The name and student number of all authors are 
+given with assigned job description.-->
+```
+```{=tex}
+\pagenumbering{gobble}
+\allsectionsfont{\centering}
+\subsectionfont{\raggedright}
+\subsubsectionfont{\raggedright}
+```
+````{=tex}
+\pagenumbering{gobble}
+\begin{centering}
+\vspace{2cm}
+```{r uni_logo, echo=F, out.width="100%"}
+knitr::include_graphics("BS.png")
+```
+\vspace{1cm}
+
+\Large
+
+\vspace{1cm}
+\doublespacing
+{\bf BIOC17 \\
+Generation time assignment}
+
+\vspace{0.5 cm}
+\normalsize
+\singlespacing
+
+
+\vspace{1 cm}
+{\bf \large Donglin Que\normalsize(1006741233)}
+
+\vspace{8 cm}
+Last compiled on `r format(Sys.time(), '%B %d, %Y')`
+
+\end{centering}
+````
+
+\newpage
+\pagenumbering{arabic}
+
+\newpage
+
+<!-- load packages -->
+
+```{r setup, include=FALSE, warning=FALSE, message=FALSE}
+# load packages
+library(knitr)
+library(readxl)
+library(tidyverse)
+library(ggplot2)
+library(ggpubr)
+library(ggpmisc)
+library(matrixStats)
+library(captioner)
+library(latex2exp)
+library(xtable)
+opts_chunk$set(echo = FALSE)
+```
+
+### Introduction
+
+<!--This section has a logical organization and moves from general to specific. It provides sufficient background to understand the goal and content of the report. It has a clear explanation of why this work is important and relevant. The last few sentences of this section clearly present the goal of the study.-->
+
+
+*Escherichia coli* is a widely studied and used model organism in genetics and molecular biology studies due to its genetic characteristics and rapid growth. The generation time of *E. coli* is the minimum time it takes a cell population to double. It is affected by many factors, such as temperature and pressure, under aerobic and nutrient-rich conditions at 37 degrees in the laboratory, *E. coli* can divide every 20 minutes[@sonGrowthMaintenanceEscherichia2021]. In this experiment, we study the generation time of *E. coli* in a nutrient-rich environment of 30 degrees and 37 degrees, and use direct count and indirect (turbidity by microplate and Spec20 at OD550) methods to collect and compare data.
+
+
+
+
+
+
+
+
+
+### Graphs and Generation time calculation
+
+Put the three sets of data collected by direct counting and indirect measurement into the corresponding coordinate axes for analysis. The direct measurement of counted bacteria populations over time is shown in *Fig. 1*.
+
+
+```{r, include=FALSE}
+vbc <- read_excel("viable count.xlsx", sheet = "Cell density")
+vbc
+```
+
+```{r, fig.width = 6.5, fig.height = 3.5, fig.cap = " *E. coli* viable counts change over time in nutrient-rich medium. In this figure, the abscissa indicates the incubation time (in minutes) of E. coli at the corresponding temperature, and the ordinate indicates the cell density (CFU/ml). Different incubation temperatures are distinguished by different colors.", echo=FALSE, warning = FALSE, message = FALSE , results='hide'}
+
+vbc %>% pivot_longer(-'Time (min)', names_to = "Temp", values_to = "Value") %>% ggplot(aes(y = Value, x = `Time (min)`, colour = Temp)) + geom_point() + 
+  geom_smooth(mapping = aes(y = Value, x = `Time (min)`, colour = Temp), formula = y ~ x, method = "lm", se = FALSE)+
+  labs(y = "Cell density (CFU/mL)", fill = "Temperature") + 
+  scale_color_discrete(name = "Temperature", labels=c("30°C", "37°C")) +
+  stat_poly_eq(method = "lm", formula = y ~ x,
+               aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
+               parse = TRUE, coef.digits = 3, f.digits = 3) 
+```
+
+In *Fig. 2*, the measurement results of the two temperatures and the two instruments are summarized below, and the vertical axis of the graph is represented by semilog.
+
+```{r, include=FALSE}
+ms <- read_excel("viable count.xlsx", sheet = "MP")
+ms
+
+mse <- read_excel("viable count.xlsx", sheet = "MPe") %>% pivot_longer(-'Time (min)', names_to = "Condition", values_to = "Value")
+mse
+```
+
+```{r, fig.width = 7, fig.height = 7, fig.cap = "The relationship between the survival rate of *E. coli* on the semilog scale and the absorbance at 550 $(m \\mu (nm))$ and time. In this figure, the abscissa indicates the incubation time of *E. coli*, and the ordinate is displayed after semilog transformation Absorbance at 550 $(m \\mu (nm))$. The figure contains a total of four data of two temperatures and two measurement methods, and different colors are used to distinguish the conditions.", echo=FALSE, warning = FALSE, message = FALSE , results='hide'}
+
+ms %>% pivot_longer(-'Time (min)', names_to = "Condition", values_to = "Value") %>% 
+  ggplot(aes(y = Value, x = `Time (min)`, colour = Condition)) + 
+  geom_point() + 
+  scale_y_log10() +
+  labs(y = TeX("Absorbance ($A_{550}$ nm)"), fill = "Temperature") + 
+  scale_color_discrete(name = "Condition", labels=c("37°C Micro plate", "30°C Micro plate", "37 °C Spec20", "30 °C Spec20")) +
+  geom_smooth(data = mse, mapping = aes(y = Value, x = `Time (min)`, colour = Condition), formula = y ~ x, method = "lm", se = FALSE) +
+  stat_poly_eq(data = mse, method = "lm", formula = y ~ x,
+               aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
+               parse = TRUE, coef.digits = 3, f.digits = 3) 
+```
+
+After drawing the regression line, first calculate the generation time for the directly counted samples, as shown in *Table 1*.
+
+\begin{table}[ht]
+\caption{Direct method GT calculation} 
+\centering
+\begin{tabular}{ccc}
+\toprule
+ \diagbox{Formula}{Value} & 37°C Viable count & 30°C Viable count \\ \midrule
+  GT = $x_2 - x_1$ (when $y_2 = 2y_1$) & 70 - 30 = 40 & 90 - 0 = 90 \\ \bottomrule
+\end{tabular}
+\end{table}
+
+
+*Table 2* shows the process of calculating generation time by the indirect method.
+
+\begin{table}[ht]
+\caption{Indirect method GT calculation} 
+\centering
+\begin{tabular}{ccccc}
+\toprule
+ \diagbox{Formula}{Value} & 37°C Micro plate & 30°C Micro plate & 37°C Spec20 & 30°C Spec20 \\ \midrule
+  Slope = $\frac{log(y_2)-log(y_1)}{x_2-x_1}$ & 0.0079 & 0.0040 & 0.0216 & 0.0116\\ 
+  GT = $\frac{0.3}{Slope}$ & $\frac{0.3}{0.0079} = 37.788$ & $\frac{0.3}{0.0040} = 73.235$ & $\frac{0.3}{0.0216} = 13.856$ & $\frac{0.3}{0.0116} = 25.729$ \\ \bottomrule
+\end{tabular}
+\end{table}
+
+
+
+
+
+
+
+### Discussion
+
+The purpose of this experiment is to monitor the growth of *E. coli* under two different temperature conditions. The generation time of all bacteria is shown in *Table 3*. It can be seen that different methods have different generation times, but the data of viable count is similar to that of micro plate, while the data collected by spec20 has a large deviation. Taking the growth environment of 37 degrees as an example, the data of the first two groups is about 40 minutes, while the result of Spec20 is less than 15 minutes.
+
+Ideally, the GT of *E. coli* is 20 minutes in an environment of 37 degrees, and it is much longer in an environment of 30 degrees, which can reach nearly one hour[@stumpfGenerationTimesColi2020]. There is a gap between the actual measurement results and the theoretical results. Our GT reached 40 minutes in an environment of 37 degrees, and about 80 minutes in a temperature of 30 degrees. However, comparing the results of the three different methods, it can be seen that the GT in the 30-degree environment is about twice that of the 37-degree environment, which shows that although our methods are different, the data show consistency, which shows that there were no obvious problems in the experimental operation.
+
+Comparing the data of micro plate and Spec20, it can be seen that there is a significant difference in GT between them. Even though they used the same sample, expecting them to get the same generation time, this significant difference emerged. This may be due to the introduction of other bacterial contaminants into the Spec20 tube each time the sample is drawn, resulting in a low OD550, or due to the step of extraction and addition, the contact area between bacteria and oxygen increases, resulting in a decrease in GT time. In addition, the temperature of the operator's hand may indirectly heat the test tube, causing the temperature of the bacterial growth environment to be slightly higher than the expected temperature, and the GT time is reduced. On the other hand, the environment of the micro plate is relatively stable, and there is almost no disturbance of the environment and temperature after the sample is added, so it can be considered that its data can represent the real generation time of *E. coli* used in this batch.
+
+\begin{table}[ht]
+\caption{GT comparison} 
+\centering
+\begin{tabular}{ccccc}
+\toprule
+ \diagbox{Method}{Temp} & 37°C & 30°C \\ \midrule
+  Viable count & 40 & 90 \\ 
+  Micro plate & 37.788 & 73.235\\
+  Spec20 & 13.856 & 25.729 \\ \bottomrule
+\end{tabular}
+\end{table}
+
+# Reference
+
+\small
